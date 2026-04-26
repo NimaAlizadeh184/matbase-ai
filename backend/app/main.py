@@ -17,6 +17,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Allow Railway and Vercel domains as trusted hosts
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["*"],
+)
+
 app.include_router(materials.router)
 app.include_router(ai.router)
 
