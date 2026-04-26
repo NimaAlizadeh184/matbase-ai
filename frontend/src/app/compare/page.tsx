@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { compareMaterials, MaterialDetail } from '@/lib/api'
 import Link from 'next/link'
@@ -24,7 +24,7 @@ const ROWS: { label: string; key: keyof MaterialDetail; unit?: string }[] = [
   { label: 'Manufacturers', key: 'manufacturers' },
 ]
 
-export default function ComparePage() {
+function CompareContent() {
   const params = useSearchParams()
   const ids = (params.get('ids') || '').split(',').map(Number).filter(Boolean)
   const [materials, setMaterials] = useState<MaterialDetail[]>([])
@@ -86,5 +86,13 @@ export default function ComparePage() {
         </table>
       </div>
     </div>
+  )
+}
+
+export default function ComparePage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse h-96 bg-gray-200 rounded-xl" />}>
+      <CompareContent />
+    </Suspense>
   )
 }
