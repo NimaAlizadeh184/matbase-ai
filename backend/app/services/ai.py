@@ -38,27 +38,43 @@ When answering:
 - Be specific about material properties
 - Suggest concrete materials from the database when relevant
 - Explain trade-offs between materials
-- Return your answer as JSON with two fields:
-  - "reply": your text response (markdown supported)
-  - "suggested_material_ids": list of material IDs from the database that are relevant (empty list if none)
 """
 
     user_prompt = f"""Database of available materials:
 {json.dumps(material_summary, indent=2)}
 
-User question: {message}
+User question: {message}"""
 
-Respond with valid JSON only."""
+    tools = [
+        {
+            "name": "provide_recommendation",
+            "description": "Provide the reply to show the user and any relevant material ids.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "reply": {"type": "string", "description": "The text response, markdown supported"},
+                    "suggested_material_ids": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "IDs of materials from the database that are relevant (empty if none)",
+                    },
+                },
+                "required": ["reply", "suggested_material_ids"],
+            },
+        }
+    ]
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
         system=system_prompt,
         messages=[{"role": "user", "content": user_prompt}],
+        tools=tools,
+        tool_choice={"type": "tool", "name": "provide_recommendation"},
     )
 
-    try:
-        result = json.loads(response.content[0].text)
-        return result
-    except (json.JSONDecodeError, IndexError, KeyError):
-        return {"reply": response.content[0].text, "suggested_material_ids": []}
+    tool_use = next(block for block in response.content if block.type == "tool_use")
+    return {
+        "reply": tool_use.input["reply"],
+        "suggested_material_ids": tool_use.input["suggested_material_ids"],
+    }
