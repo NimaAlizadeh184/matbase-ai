@@ -38,12 +38,8 @@ When answering:
 - Be specific about material properties
 - Suggest concrete materials from the database when relevant
 - Explain trade-offs between materials
+- Keep replies focused and reasonably concise; use tables/formatting only when it aids comparison
 """
-
-    user_prompt = f"""Database of available materials:
-{json.dumps(material_summary, indent=2)}
-
-User question: {message}"""
 
     tools = [
         {
@@ -64,11 +60,28 @@ User question: {message}"""
         }
     ]
 
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"Database of available materials:\n{json.dumps(material_summary, indent=2)}",
+                    "cache_control": {"type": "ephemeral"},
+                },
+                {
+                    "type": "text",
+                    "text": f"User question: {message}",
+                },
+            ],
+        }
+    ]
+
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
         system=system_prompt,
-        messages=[{"role": "user", "content": user_prompt}],
+        messages=messages,
         tools=tools,
         tool_choice={"type": "tool", "name": "provide_recommendation"},
     )
