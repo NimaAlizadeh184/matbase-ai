@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
@@ -72,7 +72,10 @@ def list_materials(
 
 @router.get("/{material_id}", response_model=MaterialDetail)
 def get_material(material_id: int, db: Session = Depends(get_db)):
-    return db.query(Material).filter(Material.id == material_id).first()
+    material = db.query(Material).filter(Material.id == material_id).first()
+    if material is None:
+        raise HTTPException(status_code=404, detail="Material not found")
+    return material
 
 
 @router.get("/compare/", response_model=list[MaterialDetail])
@@ -80,5 +83,8 @@ def compare_materials(
     ids: str = Query(..., description="Comma-separated material IDs"),
     db: Session = Depends(get_db),
 ):
-    id_list = [int(i) for i in ids.split(",")]
+    try:
+        id_list = [int(i) for i in ids.split(",")]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ids must be a comma-separated list of integers")
     return db.query(Material).filter(Material.id.in_(id_list)).all()
